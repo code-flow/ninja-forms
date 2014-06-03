@@ -136,6 +136,7 @@ function ninja_forms_get_field_by_id($field_id){
 
 function ninja_forms_get_fields_by_form_id($form_id, $orderby = 'ORDER BY `order` ASC'){
 	global $wpdb;
+
 	$field_results = $wpdb->get_results($wpdb->prepare("SELECT * FROM ".NINJA_FORMS_FIELDS_TABLE_NAME." WHERE form_id = %d ".$orderby, $form_id), ARRAY_A);
 	if(is_array($field_results) AND !empty($field_results)){
 		$x = 0;
@@ -145,6 +146,7 @@ function ninja_forms_get_fields_by_form_id($form_id, $orderby = 'ORDER BY `order
 			$x++;
 		}
 	}
+
 	return $field_results;
 }
 
@@ -228,8 +230,23 @@ function ninja_forms_get_all_defs(){
 
 // Begin Submission Interaction Functions
 
-function ninja_forms_get_subs($args = array()){
+/*
+ *
+ * Function that returns a count of the number of submissions.
+ *
+ * @since 2.3.8
+ * @return string $count
+ */
+
+function ninja_forms_get_sub_count( $args = array() ) {
 	global $wpdb;
+
+	$plugin_settings = nf_get_settings();
+	if ( isset ( $plugin_settings['date_format'] ) ) {
+		$date_format = $plugin_settings['date_format'];
+	} else {
+		$date_format = 'm/d/Y';
+	}
 	if(is_array($args) AND !empty($args)){
 		$where = '';
 		if(isset($args['form_id'])){
@@ -250,10 +267,22 @@ function ninja_forms_get_subs($args = array()){
 			$where .= '`status` = '.$args['status'];
 			unset($args['status']);
 		}
+		if(isset($args['action'])){
+			if($where != ''){
+				$where .= ' AND ';
+			}
+			$where .= '`action` = "'.$args['action'].'"';
+			unset($args['action']);
+		}
 		if(isset($args['begin_date']) AND $args['begin_date'] != ''){
 			$begin_date = $args['begin_date'];
+			if ( $date_format == 'd/m/Y' ) {
+				$begin_date = str_replace( '/', '-', $begin_date );
+			} else if ( $date_format == 'm-d-Y' ) {
+				$begin_date = str_replace( '-', '/', $begin_date );
+			}
 			$begin_date = strtotime($begin_date);
-			$begin_date = date("Y-m-d g:i:s", $begin_date);
+			$begin_date = date("Y-m-d G:i:s", $begin_date);
 			unset($args['begin_date']);
 		}else{
 			unset($args['begin_date']);
@@ -261,8 +290,97 @@ function ninja_forms_get_subs($args = array()){
 		}
 		if(isset($args['end_date']) AND $args['end_date'] != ''){
 			$end_date = $args['end_date'];
+			if ( $date_format == 'd/m/Y' ) {
+				$end_date = str_replace( '/', '-', $end_date );
+			} else if ( $date_format == 'm-d-Y' ) {
+				$end_date = str_replace( '-', '/', $end_date );
+			}
 			$end_date = strtotime($end_date);
-			$end_date = date("Y-m-d g:i:s", $end_date);
+			$end_date = date("Y-m-d G:i:s", $end_date);
+			unset($args['end_date']);
+		}else{
+			unset($args['end_date']);
+			$end_date = '';
+		}
+	}
+
+	if($begin_date != ''){
+		if($where != ''){
+			$where .= ' AND ';
+		}
+		$where .= "date_updated > '".$begin_date."'";
+	}
+	if($end_date != ''){
+		if($where != ''){
+			$where .= ' AND ';
+		}
+		$where .= "date_updated < '".$end_date."'";
+	}
+
+	$subs_results = $wpdb->get_results( "SELECT COUNT(*) FROM ".NINJA_FORMS_SUBS_TABLE_NAME." WHERE " . $where . " ORDER BY `date_updated`" , ARRAY_A );
+	
+	return $subs_results[0]['COUNT(*)'];
+
+}
+
+function ninja_forms_get_subs($args = array()){
+	global $wpdb;
+	$plugin_settings = nf_get_settings();
+	if ( isset ( $plugin_settings['date_format'] ) ) {
+		$date_format = $plugin_settings['date_format'];
+	} else {
+		$date_format = 'm/d/Y';
+	}
+	if(is_array($args) AND !empty($args)){
+		$where = '';
+		if(isset($args['form_id'])){
+			$where = '`form_id` = '.$args['form_id'];
+			unset($args['form_id']);
+		}
+		if(isset($args['user_id'])){
+			if($where != ''){
+				$where .= ' AND ';
+			}
+			$where .= '`user_id` = '.$args['user_id'];
+			unset($args['user_id']);
+		}
+		if(isset($args['status'])){
+			if($where != ''){
+				$where .= ' AND ';
+			}
+			$where .= '`status` = '.$args['status'];
+			unset($args['status']);
+		}
+		if(isset($args['action'])){
+			if($where != ''){
+				$where .= ' AND ';
+			}
+			$where .= '`action` = "'.$args['action'].'"';
+			unset($args['action']);
+		}
+		if(isset($args['begin_date']) AND $args['begin_date'] != ''){
+			$begin_date = $args['begin_date'];
+			if ( $date_format == 'd/m/Y' ) {
+				$begin_date = str_replace( '/', '-', $begin_date );
+			} else if ( $date_format == 'm-d-Y' ) {
+				$begin_date = str_replace( '-', '/', $begin_date );
+			}
+			$begin_date = strtotime($begin_date);
+			$begin_date = date("Y-m-d G:i:s", $begin_date);
+			unset($args['begin_date']);
+		}else{
+			unset($args['begin_date']);
+			$begin_date = '';
+		}
+		if(isset($args['end_date']) AND $args['end_date'] != ''){
+			$end_date = $args['end_date'];
+			if ( $date_format == 'd/m/Y' ) {
+				$end_date = str_replace( '/', '-', $end_date );
+			} else if ( $date_format == 'm-d-Y' ) {
+				$end_date = str_replace( '-', '/', $end_date );
+			}
+			$end_date = strtotime($end_date);
+			$end_date = date("Y-m-d G:i:s", $end_date);
 			unset($args['end_date']);
 		}else{
 			unset($args['end_date']);
@@ -289,7 +407,7 @@ function ninja_forms_get_subs($args = array()){
 		unset($args['limit']);
 	}
 
-	$subs_results = $wpdb->get_results($wpdb->prepare("SELECT * FROM ".NINJA_FORMS_SUBS_TABLE_NAME." WHERE ".$where." ORDER BY `date_updated` DESC ".$limit, NINJA_FORMS_SUBS_TABLE_NAME), ARRAY_A);
+	$subs_results = $wpdb->get_results( "SELECT * FROM ".NINJA_FORMS_SUBS_TABLE_NAME." WHERE " . $where . " ORDER BY `date_updated` DESC ".$limit, ARRAY_A );
 
 	if(is_array($subs_results) AND !empty($subs_results)){
 		$x = 0;
@@ -317,18 +435,21 @@ function ninja_forms_get_subs($args = array()){
 
 						if(isset($args[$d['field_id']])){ //If the field id is found within the args array, then we should check its value.
 							if($args[$d['field_id']] != $d['user_value']){ //If the values are not equal, we set $unset to true.
+								
 								$unset = true;
 							}
 						}
 
 						if($x == count($data)){ //If we are on the last item, this is our last chance to find the field id in the args array.
 							if(!isset($args[$d['field_id']])){ //If the field id is not found within the args array, then we know it doesn't exist.
-								$unset = true; //We've reached the last item without finding our field id in the sent args array. Set $untrue to true.
+								
+								//$unset = true; //We've reached the last item without finding our field id in the sent args array. Set $untrue to true.
 							}
 						}
 
 						$x++;
 					}
+
 					if($unset){
 						unset($subs_results[$key]); //If $unset ias been set to true above, unset the given submission before returning the results.
 					}
@@ -372,7 +493,12 @@ function ninja_forms_update_sub($args){
 	$update_array = array();
 	$sub_id = $args['sub_id'];
 	unset( $args['sub_id'] );
+	if ( !is_serialized( $args['data'] ) ) {
+		$args['data'] = serialize( $args['data'] );
+	}
 	$update_array = $args;
+	$date_updated = $date_updated = date( 'Y-m-d H:i:s', strtotime ( 'now' ) );
+	$update_array['date_updated'] = $date_updated;
 
 	$wpdb->update(NINJA_FORMS_SUBS_TABLE_NAME, $update_array, array('id' => $sub_id));
 }
@@ -405,10 +531,10 @@ function ninja_forms_str_replace_deep($search, $replace, $subject){
     }
 }
 
-function ninja_forms_html_entity_decode_deep( $value ){
+function ninja_forms_html_entity_decode_deep( $value, $flag = ENT_COMPAT ){
     $value = is_array($value) ?
         array_map('ninja_forms_html_entity_decode_deep', $value) :
-        html_entity_decode( $value );
+        html_entity_decode( $value, $flag );
     return $value;
 }
 
@@ -503,4 +629,63 @@ function ninja_forms_json_response(){
 	}
 
 	return $json;
+}
+
+/*
+ *
+ * Function that sets up our transient variable.
+ *
+ * @since 2.2.45
+ * @return void
+ */
+
+function ninja_forms_set_transient(){
+	global $ninja_forms_processing;
+
+	$form_id = $ninja_forms_processing->get_form_ID();
+	// Setup our transient variable.
+	$transient = array();
+	$transient['form_id'] = $form_id;
+	$transient['field_values'] = $ninja_forms_processing->get_all_fields();
+	$transient['form_settings'] = $ninja_forms_processing->get_all_form_settings();
+	$transient['extra_values'] = $ninja_forms_processing->get_all_extras();
+	$all_fields_settings = array();
+	if ( $ninja_forms_processing->get_all_fields() ) {
+		foreach ( $ninja_forms_processing->get_all_fields() as $field_id => $user_value ) {
+			$field_settings = $ninja_forms_processing->get_field_settings( $field_id );
+			$all_fields_settings[$field_id] = $field_settings; 
+		}		
+	}
+
+	$transient['field_settings'] = $all_fields_settings;
+
+	// Set errors and success messages as $_SESSION variables.
+	$success = $ninja_forms_processing->get_all_success_msgs();
+	$errors = $ninja_forms_processing->get_all_errors();
+
+	$transient['success_msgs'] = $success;
+	$transient['error_msgs'] = $errors;
+	if ( ! isset ( $_SESSION['ninja_forms_transient_id'] ) )
+		ninja_forms_set_transient_id();
+
+	if ( isset ( $_SESSION['ninja_forms_transient_id'] ) ) {
+		$transient_id = $_SESSION['ninja_forms_transient_id'];		
+	}
+
+	//delete_transient( 'ninja_forms_test' );
+	set_transient( $transient_id, $transient, DAY_IN_SECONDS );
+}
+
+/*
+ *
+ * Function that deletes our transient variable
+ *
+ * @since 2.2.45
+ * @return void
+ */
+
+function ninja_forms_delete_transient(){
+	if( isset( $_SESSION['ninja_forms_transient_id'] ) ) {
+		delete_transient( $_SESSION['ninja_forms_transient_id'] );
+	}
 }

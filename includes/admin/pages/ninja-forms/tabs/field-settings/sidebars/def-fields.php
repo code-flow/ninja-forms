@@ -1,9 +1,9 @@
 <?php
-add_action('admin_init', 'ninja_forms_register_sidebar_def_fields');
+//add_action('admin_init', 'ninja_forms_register_sidebar_def_fields');
 
 function ninja_forms_register_sidebar_def_fields(){
 	$args = array(
-		'name' => 'Defined Fields',
+		'name' => __( 'Defined Fields', 'ninja-forms' ),
 		'page' => 'ninja-forms',
 		'tab' => 'field_settings',
 		'display_function' => 'ninja_forms_sidebar_def_fields'

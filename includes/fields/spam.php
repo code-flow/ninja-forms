@@ -1,7 +1,7 @@
 <?php
 function ninja_forms_register_field_spam(){
 	$args = array(
-		'name' => 'Anti-Spam',
+		'name' => __( 'Anti-Spam', 'ninja-forms' ),
 		'edit_function' => '',
 		'display_function' => 'ninja_forms_field_spam_display',
 		'group' => 'standard_fields',
@@ -11,7 +11,7 @@ function ninja_forms_register_field_spam(){
 		'edit_custom_class' => true,
 		'edit_help' => true,
 		'edit_meta' => false,
-		'sidebar' => '',
+		'sidebar' => 'template_fields',
 		'display_label' => true,
 		'edit_conditional' => true,
 		'conditional' => array(
@@ -26,14 +26,14 @@ function ninja_forms_register_field_spam(){
 			array(
 				'name' => 'label',
 				'type' => 'text',
-				'label' => __('Spam Question', 'ninja-forms'),
+				'label' => __( 'Spam Question', 'ninja-forms' ),
 				'width' => 'wide',
 				'class' => 'widefat',
 			),
 			array(
 				'name' => 'spam_answer',
 				'type' => 'text',
-				'label' => __('Spam Answer', 'ninja-forms'),
+				'label' => __( 'Spam Answer', 'ninja-forms' ),
 				'width' => 'wide',
 				'class' => 'widefat',
 			),
@@ -68,7 +68,7 @@ function ninja_forms_field_spam_edit($field_id, $data){
 	</p>
 	<p class="description description-wide">
 		<label for="">
-			<?php _e( 'Spam Answer' , 'ninja-forms'); ?><br />
+			<?php _e( 'Spam Answer', 'ninja-forms'); ?><br />
 			<input type="text" class="widefat" name="ninja_forms_field_<?php echo $field_id;?>[answer]" id="" value="<?php echo $answer;?>">
 		</label>
 	</p>
@@ -114,9 +114,9 @@ function ninja_forms_field_spam_display($field_id, $data){
 function ninja_forms_field_spam_pre_process( $field_id, $user_value ){
 	global $ninja_forms_processing;
 
-	$plugin_settings = get_option("ninja_forms_settings");
+	$plugin_settings = nf_get_settings();
 	if(isset($plugin_settings['spam_error'])){
-		$spam_error = $plugin_settings['spam_error'];
+		$spam_error = __( $plugin_settings['spam_error'], 'ninja-forms' );
 	}
 	$field_row = ninja_forms_get_field_by_id($field_id);
 	$field_data = $field_row['data'];

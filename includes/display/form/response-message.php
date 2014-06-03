@@ -7,7 +7,10 @@
 function ninja_forms_display_response_message( $form_id ){
 	global $ninja_forms_processing;
 
-	$plugin_settings = get_option( 'ninja_forms_settings' );
+	if ( isset ( $ninja_forms_processing ) and $ninja_forms_processing->get_form_ID() != $form_id )
+		return;
+
+	$plugin_settings = nf_get_settings();
 	$form_row = ninja_forms_get_form_by_id($form_id);
 	if( isset( $form_row['data']['ajax'] ) ){
 		$ajax = $form_row['data']['ajax'];
@@ -36,14 +39,18 @@ function ninja_forms_display_response_message( $form_id ){
 		if( $ninja_forms_processing->get_form_ID() == $form_id ){
 			if( $ninja_forms_processing->get_errors_by_location('general') ){
 				foreach($ninja_forms_processing->get_errors_by_location('general') as $error){
+					echo '<div>';
 					echo $error['msg'];
+					echo '</div>';
 				}
 			}
 
 
 			if( $ninja_forms_processing->get_all_success_msgs()){
 				foreach($ninja_forms_processing->get_all_success_msgs() as $success){
+					echo '<div>';
 					echo $success;
+					echo '</div>';
 				}
 			}
 		}

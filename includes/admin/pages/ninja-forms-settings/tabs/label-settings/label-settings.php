@@ -3,7 +3,7 @@ add_action( 'init', 'ninja_forms_register_tab_label_settings' );
 
 function ninja_forms_register_tab_label_settings(){
 	$args = array(
-		'name' => 'Labels',
+		'name' => __( 'Labels', 'ninja-forms' ),
 		'page' => 'ninja-forms-settings',
 		'display_function' => '',
 		'save_function' => 'ninja_forms_save_label_settings',
@@ -20,7 +20,7 @@ function ninja_forms_register_label_settings_metabox(){
 		'page' => 'ninja-forms-settings',
 		'tab' => 'label_settings',
 		'slug' => 'label_labels',
-		'title' => __('Message Labels', 'ninja-forms'),
+		'title' => __( 'Message Labels', 'ninja-forms' ),
 		'settings' => array(
 			array(
 				'name' => 'req_div_label',
@@ -52,6 +52,24 @@ function ninja_forms_register_label_settings_metabox(){
 				'desc' => '',
 			),
 			array(
+			 	'name' => 'honeypot_error',
+				'type' => 'text',
+				'label' => __( 'Honeypot error message', 'ninja-forms' ),
+				'desc' => '',
+			),
+			array(
+			 	'name' => 'timed_submit_error',
+				'type' => 'text',
+				'label' => __( 'Timer error message', 'ninja-forms' ),
+				'desc' => '',
+			),
+			array(
+				'name' => 'javascript_error',
+				'type' => 'text',
+				'label' => __( 'JavaScript disabled error message', 'ninja-forms' ),
+				'desc' => '',
+			),
+			array(
 			 	'name' => 'invalid_email',
 				'type' => 'text',
 				'label' => __( 'Please enter a valid email address', 'ninja-forms' ),
@@ -60,21 +78,21 @@ function ninja_forms_register_label_settings_metabox(){
 			array(
 				'name' => 'process_label',
 				'type' => 'text',
-				'label' => __('Ajax submitting message', 'ninja-forms'),
-				'desc' => __('If your form is submitted via ajax, what message should appear to let users know it is being processed?', 'ninja-forms'),
+				'label' => __( 'Processing Submission Label', 'ninja-forms' ),
+				'desc' => __( 'This message is shown inside the submit button whenever a user clicks "submit" to let them know it is processing.', 'ninja-forms' ),
 			),
 		),
 	);
-	ninja_forms_register_tab_metabox($args);
+	ninja_forms_register_tab_metabox( $args );
 
 }
 
-function ninja_forms_save_label_settings($data){
-	$plugin_settings = get_option("ninja_forms_settings");
-	foreach($data as $key => $val){
+function ninja_forms_save_label_settings( $data ){
+	$plugin_settings = nf_get_settings();
+	foreach( $data as $key => $val ){
 		$plugin_settings[$key] = $val;
 	}
-	update_option("ninja_forms_settings", $plugin_settings);
+	update_option( "ninja_forms_settings", $plugin_settings );
 	$update_msg = __( 'Settings Saved', 'ninja-forms' );
 	return $update_msg;
 }

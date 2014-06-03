@@ -9,22 +9,19 @@ function ninja_forms_register_display_fields(){
 }
 
 function ninja_forms_display_fields($form_id){
-	global $ninja_forms_fields, $ninja_forms_processing, $current_user;
-	get_currentuserinfo();
-	//var_dump( $ninja_forms_processing );
+	global $ninja_forms_fields, $ninja_forms_loading, $ninja_forms_processing;
 
-	if(isset($current_user)){
-		$user_id = $current_user->ID;
-	}else{
-		$user_id = '';
-	}
-
-	$plugin_settings = get_option("ninja_forms_settings");
-	$form_row = ninja_forms_get_form_by_id($form_id);
 	$field_results = ninja_forms_get_fields_by_form_id($form_id);
 	$field_results = apply_filters('ninja_forms_display_fields_array', $field_results, $form_id);
-	if(is_array($field_results) AND !empty($field_results)){
-		foreach($field_results as $field){
+
+	if ( is_array ( $field_results ) AND !empty ( $field_results ) ) {
+		foreach ( $field_results as $field ) {
+			if ( isset ( $ninja_forms_loading ) ) {
+				$field = $ninja_forms_loading->get_field_settings( $field['id'] );
+			} else if ( isset ( $ninja_forms_processing ) ) {
+				$field = $ninja_forms_processing->get_field_settings( $field['id'] );
+			}
+
 			if( isset( $ninja_forms_fields[$field['type']] ) ){
 				$type = $ninja_forms_fields[$field['type']];
 
@@ -46,12 +43,12 @@ function ninja_forms_display_fields($form_id){
 				if( is_object( $ninja_forms_processing)){
 					$sub_id = $ninja_forms_processing->get_form_setting('sub_id');
 				}else if(isset($_REQUEST['sub_id'])){
-					$sub_id = $_REQUEST['sub_id'];
+					$sub_id = absint( $_REQUEST['sub_id'] );
 				}else{
 					$sub_id = '';
 				}
 
-				if($sub_id != '' AND $sub_edit_function != ''){
+				if ( $sub_id != '' AND $sub_edit_function != '' AND is_admin() ){
 					$display_function = $sub_edit_function;
 				}
 
@@ -67,20 +64,30 @@ function ninja_forms_display_fields($form_id){
 				}else{
 					$show_field = true;
 				}
+
 				if( isset( $data['display_style'] ) ){
 					$display_style = $data['display_style'];
 				}else{
 					$display_style = '';
 				}
 
+				if( isset( $data['visible'] ) ){
+					$visible = $data['visible'];
+				}else{
+					$visible = true;
+				}
+
+				if ( $display_style != '' ) {
+					$display_style = 'style="'.$display_style.'"';
+				}
+
 				if ( $display_function != '' AND $show_field ) {
-					if ( $type['edit_label_pos'] ) {
-						if ( isset( $data['label_pos'] ) ) {
+					if ( isset( $data['label_pos'] ) ) {
 							$label_pos = $data['label_pos'];
-						}else{
+					}else{
 							$label_pos = '';
-						}
-					} else {
+					}
+					if( $label_pos == '' ) {
 						$label_pos = $default_label_pos;
 					}
 
@@ -92,7 +99,7 @@ function ninja_forms_display_fields($form_id){
 						$field_wrap_class = apply_filters( 'ninja_forms_field_wrap_class', $field_wrap_class, $field_id );
 						do_action( 'ninja_forms_display_before_opening_field_wrap', $field_id, $data );
 						?>
-						<div class="<?php echo $field_wrap_class;?>" style="<?php echo $display_style;?>" id="ninja_forms_field_<?php echo $field_id;?>_div_wrap">
+						<div class="<?php echo $field_wrap_class;?>" <?php echo $display_style;?> id="ninja_forms_field_<?php echo $field_id;?>_div_wrap" data-visible="<?php echo $visible;?>">
 						<?php
 						do_action( 'ninja_forms_display_after_opening_field_wrap', $field_id, $data );
 					}
@@ -149,13 +156,22 @@ function ninja_forms_display_fields($form_id){
 **/
 
 function ninja_forms_get_field_wrap_class($field_id){
-	global $ninja_forms_processing;
+	global $ninja_forms_loading, $ninja_forms_processing;
 	$field_wrap_class = 'field-wrap';
-	$field_row = ninja_forms_get_field_by_id($field_id);
+	if ( isset ( $ninja_forms_loading ) ) {
+		$field_row = $ninja_forms_loading->get_field_settings( $field_id );
+	} else {
+		$field_row = $ninja_forms_processing->get_field_settings( $field_id );
+	}
+
 	$form_id = $field_row['form_id'];
 	$data = $field_row['data'];
 
-	$type_slug = $field_row['type'];
+	if ( isset ( $field_row['type'] ) ) {
+		$type_slug = $field_row['type'];
+	} else {
+		$type_slug = '';
+	}
 
 	if(strpos($type_slug, "_") === 0){
 		$type_slug = substr($type_slug, 1);
@@ -165,10 +181,9 @@ function ninja_forms_get_field_wrap_class($field_id){
 	if(isset($data['label_pos'])){
 		$label_pos = $data['label_pos'];
 	}else{
-		$label_pos = 'left';
+		$label_pos = 'above';
 	}
 	$field_wrap_class .= " label-".$label_pos;
-
 
 	$x = 0;
 	$custom_class = '';
@@ -195,21 +210,33 @@ function ninja_forms_get_field_wrap_class($field_id){
 			break;
 		}
 	}
-	return $field_wrap_class;
+	return apply_filters( 'ninja_forms_display_field_wrap_class', $field_wrap_class, $field_id, $field_row );
 }
 
 
-function ninja_forms_get_field_class($field_id){
-	$field_row = ninja_forms_get_field_by_id($field_id);
-	$data = $field_row['data'];
+function ninja_forms_get_field_class( $field_id ) {
+	global $ninja_forms_loading, $ninja_forms_processing;
 
-	$field_class = 'ninja-forms-field';
+	if ( isset ( $ninja_forms_loading ) ) {
+		$field_row = $ninja_forms_loading->get_field_settings( $field_id );
+	} else {
+		$field_row = $ninja_forms_processing->get_field_settings( $field_id );
+	}
+	
+	$field_data = $field_row['data'];
+	$field_data = apply_filters( 'ninja_forms_field', $field_data, $field_id );
+
+	if ( isset ( $ninja_forms_loading ) ) {
+		$field_class = $ninja_forms_loading->get_field_setting( $field_id, 'field_class' );
+	} else {
+		$field_class = $ninja_forms_processing->get_field_setting( $field_id, 'field_class' );
+	}
 
 	$x = 0;
 	$custom_class = '';
 
-	if(isset($data['class']) AND !empty($data['class'])){
-		$class_array = explode(",", $data['class']);
+	if ( isset( $field_data['class'] ) AND !empty ( $field_data['class'] ) ) {
+		$class_array = explode(",", $field_data['class']);
 		foreach($class_array as $class){
 			$custom_class .= $class;
 			if($x != (count($class_array) - 1)){
@@ -219,34 +246,45 @@ function ninja_forms_get_field_class($field_id){
 		}
 	}
 
-
-	$data = $field_row['data'];
-
 	$req_class = '';
-	if(isset($data['req']) AND $data['req'] == 1){
+	if(isset($field_data['req']) AND $field_data['req'] == 1){
 		$req_class = 'ninja-forms-req';
 	}
 
 	$form_id = $field_row['form_id'];
-	$watch_fields = array();
-	$field_results = ninja_forms_get_fields_by_form_id($form_id);
-	foreach($field_results as $field){
-		$data = $field['data'];
-		if(isset($data['conditional']) AND is_array($data['conditional'])){
-			foreach($data['conditional'] as $conditional){
-				if(isset($conditional['cr']) AND is_array($conditional['cr'])){
-					foreach($conditional['cr'] as $cr){
-						$watch_fields[$cr['field']] = 1;
-					}
-				}
-			}
-		}
+
+	// Check to see if we are dealing with a field that has the user_info_field_group set.
+	if ( isset ( $field_data['user_info_field_group_name'] ) and $field_data['user_info_field_group_name'] != '' ) {
+		$user_info_group_class = $field_data['user_info_field_group_name'].'-address';
+	} else {
+		$user_info_group_class = '';
 	}
 
-	$listen_class = '';
-	if(isset($watch_fields[$field_id]) AND $watch_fields[$field_id] == 1){
-		$listen_class = "ninja-forms-field-conditional-listen";
+	$address_class = '';
+	// Check to see if we are dealing with an address field.
+	if ( isset ( $field_data['user_address_1'] ) and $field_data['user_address_1'] == 1 ) {
+		$address_class = 'address address1';
+	}	
+
+	if ( isset ( $field_data['user_address_2'] ) and $field_data['user_address_2'] == 1 ) {
+		$address_class = 'address address2';
+	}	
+
+	if ( isset ( $field_data['user_city'] ) and $field_data['user_city'] == 1 ) {
+		$address_class = 'address city';
+	}	
+
+	if ( isset ( $field_data['user_state'] ) and $field_data['user_state'] == 1 ) {
+		$address_class = 'address state';
 	}
+
+ 	if ( isset ( $field_data['user_zip'] ) and $field_data['user_zip'] == 1 ) {
+    	$address_class = 'address zip';
+    }
+
+    if ( '_country' == $field_row['type'] ) {
+    	$address_class = 'address country';
+    }
 
 	if($req_class != ''){
 		$field_class .= " ".$req_class;
@@ -256,11 +294,17 @@ function ninja_forms_get_field_class($field_id){
 		$field_class .= " ".$custom_class;
 	}
 
-	if($listen_class != ''){
-		$field_class .= " ".$listen_class;
+	if ( $user_info_group_class != '' ) {
+		$field_class .= " ".$user_info_group_class;
+	}
+	
+	if ( $address_class != '' ) {
+		$field_class .= " ".$address_class;
 	}
 
-	$field_class = apply_filters( 'ninja_forms_display_field_class', $field_class, $field_id );
+	if ( isset ( $field_data['input_limit'] ) and $field_data['input_limit'] != '' ) {
+		$field_class .= " input-limit";
+	}
 
-	return $field_class;
+	return apply_filters( 'ninja_forms_display_field_class', $field_class, $field_id, $field_row );
 }

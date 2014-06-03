@@ -8,7 +8,9 @@ function ninja_forms_register_field($slug, $args = array()){
 
 	$defaults = array(
 		'conditional' => '',
+		'default_label' => '',		
 		'default_label_pos' => '',
+		'default_value' => '',
  		'display_function' => '',
  		'display_label' => true,
  		'display_wrap' => true,
@@ -24,6 +26,7 @@ function ninja_forms_register_field($slug, $args = array()){
  		'edit_sub_post_process' => '',
  		'edit_sub_pre_process' => '',
  		'edit_sub_process' => '',
+ 		'esc_html' => true,
 		'group' => '',
 		'interact' => true,
 		'label_pos_options' => '',
@@ -41,6 +44,7 @@ function ninja_forms_register_field($slug, $args = array()){
 	 	'sub_edit' => 'text',
  		'sub_edit_function' => '',
  		'use_li' => true,
+ 		'visible' => 1,
 	);
 
 	// Parse incomming $args into an array and merge it with $defaults
@@ -101,7 +105,7 @@ function ninja_forms_register_sidebar( $slug, $args ){
 	}
 
 	$defaults = array(
-		'display_function' => '',
+		'display_function' => 'ninja_forms_sidebar_display_fields',
 		'name' => '',
 		'order' => '',
 		'save_function' => '',

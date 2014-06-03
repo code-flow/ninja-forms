@@ -4,7 +4,7 @@ add_action('init', 'ninja_forms_register_tab_impexp_fields');
 
 function ninja_forms_register_tab_impexp_fields(){
 	$args = array(
-		'name' => 'Favorite Fields',
+		'name' => __( 'Favorite Fields', 'ninja-forms' ),
 		'page' => 'ninja-forms-impexp',
 		'display_function' => '',
 		'save_function' => 'ninja_forms_save_impexp_fields',
@@ -20,12 +20,12 @@ function ninja_forms_register_imp_fav_fields_metabox(){
 		'page' => 'ninja-forms-impexp',
 		'tab' => 'impexp_fields',
 		'slug' => 'imp_fields',
-		'title' => __('Import Favorite Fields', 'ninja-forms'),
+		'title' => __( 'Import Favorite Fields', 'ninja-forms' ),
 		'settings' => array(
 			array(
 				'name' => 'userfile',
 				'type' => 'file',
-				'label' => __('Select a file', 'ninja-forms'),
+				'label' => __( 'Select a file', 'ninja-forms' ),
 				'desc' => '',
 				'max_file_size' => 30000,
 				'help_text' => '',
@@ -33,7 +33,7 @@ function ninja_forms_register_imp_fav_fields_metabox(){
 			array(
 				'name' => 'submit',
 				'type' => 'submit',
-				'label' => __('Import Favorites', 'ninja-forms'),
+				'label' => __( 'Import Favorites', 'ninja-forms' ),
 				'class' => 'button-secondary',
 			),
 		),
@@ -60,7 +60,7 @@ function ninja_forms_register_exp_fav_fields_metabox(){
 		'page' => 'ninja-forms-impexp',
 		'tab' => 'impexp_fields',
 		'slug' => 'exp_fields',
-		'title' => __('Export Favorite Fields', 'ninja-forms'),
+		'title' => __( 'Export Favorite Fields', 'ninja-forms' ),
 		'settings' => array(
 			array(
 				'name' => 'ninja_forms_fav',
@@ -78,7 +78,7 @@ function ninja_forms_register_exp_fav_fields_metabox(){
 			array(
 				'name' => 'submit',
 				'type' => 'submit',
-				'label' => __('Export Fields', 'ninja-forms'),
+				'label' => __( 'Export Fields', 'ninja-forms' ),
 				'class' => 'button-secondary',
 			),
 		),
@@ -88,11 +88,11 @@ function ninja_forms_register_exp_fav_fields_metabox(){
 
 function ninja_forms_save_impexp_fields( $data ){
 	global $wpdb, $ninja_forms_admin_update_message;
-	$plugin_settings = get_option( 'ninja_forms_settings' );
-
+	$plugin_settings = nf_get_settings();
+	$update_message = '';
 	if($_POST['submit'] == __( 'Export Fields', 'ninja-forms' ) ){
 		if(isset($_POST['ninja_forms_fav']) AND !empty($_POST['ninja_forms_fav'])){
-			$fav_ids = $_POST['ninja_forms_fav'];
+			$fav_ids = ninja_forms_esc_html_deep( $_POST['ninja_forms_fav'] );
 
 			if(isset($plugin_settings['date_format'])){
 				$date_format = $plugin_settings['date_format'];
@@ -127,22 +127,25 @@ function ninja_forms_save_impexp_fields( $data ){
 			echo $favorites;
 			die();
 		}else{
-			$ninja_forms_admin_update_message = __( 'Please select favorite fields to export.', 'ninja-forms' );
+			$update_message = __( 'Please select favorite fields to export.', 'ninja-forms' );
 		}
 	}elseif( $_POST['submit'] == __( 'Import Favorites', 'ninja-forms' ) ){
+		
 		if( $_FILES['userfile']['error'] == UPLOAD_ERR_OK AND is_uploaded_file( $_FILES['userfile']['tmp_name'] ) ){
+			
 			$file = file_get_contents($_FILES['userfile']['tmp_name']);
 			$favorites = unserialize($file);
-
 			if(is_array($favorites)){
 				foreach($favorites as $fav){
 					$fav['data'] = serialize( $fav['data'] );
 					$wpdb->insert(NINJA_FORMS_FAV_FIELDS_TABLE_NAME, $fav);
 				}
 			}
-			$ninja_forms_admin_update_message = __( 'Favorites imported successfully.', 'ninja-forms' );
+			$update_message = __( 'Favorites imported successfully.', 'ninja-forms' );
 		}else{
-			$ninja_forms_admin_update_message = __( 'Please select a valid favorite fields file.', 'ninja-forms' );
+			$update_message = __( 'Please select a valid favorite fields file.', 'ninja-forms' );
 		}
 	}
+
+	return $update_message;
 }

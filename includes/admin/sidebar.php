@@ -1,35 +1,39 @@
 <?php
 
 function ninja_forms_sidebar_sorter($array, $sequence){
-  $tmp = array();
-  foreach($sequence as $s){
-    foreach($array as $key => $a){
-      if($key == $s){
-        $tmp[$key] = $a;
-        unset( $array[$key] );
-        break;
-      }
-    }
-  }
-  if( is_array( $array ) AND !empty( $array ) ){
-  	  foreach( $array as $key => $a ){
-  	  	$tmp[$key] = $a;
-  	}
-  }
+	$tmp = array();
+	foreach($sequence as $s){
+	    foreach($array as $key => $a){
+			$s = str_replace( 'ninja_forms_metabox_', '', $s );
+			if($key == $s){
+				$tmp[$key] = $a;
+				unset( $array[$key] );
+				break;
+			}
+		}
+	}
+	if( is_array( $array ) AND !empty( $array ) ){
+		foreach( $array as $key => $a ){
+			$tmp[$key] = $a;
+		}
+	}
 
-  return $tmp;
+	return $tmp;
 }
 
 function ninja_forms_display_sidebars($data){
 	global $ninja_forms_sidebars;
 	$current_tab = ninja_forms_get_current_tab();
-	$current_page = $_REQUEST['page'];
-	$opt = get_option('ninja_forms_settings');
+	$current_page = esc_html( $_REQUEST['page'] );
+	$opt = nf_get_settings();
 	if( isset( $opt['sidebars'][$current_page][$current_tab] ) ){
 		$order = $opt['sidebars'][$current_page][$current_tab];
+		if ( !is_array ( $order ) ) {
+			$order = array();
+		}
 		$ninja_forms_sidebars[$current_page][$current_tab] = ninja_forms_sidebar_sorter( $ninja_forms_sidebars[$current_page][$current_tab], $order );
 	}
-
+	$plugin_settings = nf_get_settings();
 ?>
 <div id="menu-settings-column" class="metabox-holder">
 	<div id="side-sortables" class="meta-box-sortables ui-sortable">
@@ -38,15 +42,21 @@ function ninja_forms_display_sidebars($data){
 			foreach($ninja_forms_sidebars[$current_page][$current_tab] as $slug => $sidebar){
 
 				if((isset($opt['screen_options']['tab'][$current_tab]['sidebars'][$slug]['visible']) AND $opt['screen_options']['tab'][$current_tab]['sidebars'][$slug]['visible'] == 1) OR !isset($opt['screen_options']['tab'][$current_tab]['sidebars'][$slug]['visible'])){
+				
+				if ( isset ( $plugin_settings['metabox_state'][$current_page][$current_tab][$slug] ) ) {
+					$state = $plugin_settings['metabox_state'][$current_page][$current_tab][$slug];
+				} else {
+					$state = '';
+				}
 		?>
-		<div id="<?php echo $slug;?>" class="postbox">
+		<div id="ninja_forms_metabox_<?php echo $slug;?>" class="postbox">
 			<h3 class="hndl">
 				<span><?php _e($sidebar['name'], 'ninja-forms');?></span>
 			</h3>
-				<span class="item-controls">
-					<a class="item-edit" id="edit_id" title="<?php _e('Edit Menu Item', 'ninja-forms'); ?>" href="#"><?php _e( 'Edit Menu Item' , 'ninja-forms'); ?></a>
-				</span>
-			<div class="inside" id="ninja_forms_sidebar_<?php echo $slug;?>">
+			<span class="item-controls">
+				<a class="item-edit metabox-item-edit" id="edit_id" title="<?php _e('Edit Menu Item', 'ninja-forms'); ?>" href="#"><?php _e( 'Edit Menu Item' , 'ninja-forms'); ?></a>
+			</span>
+			<div class="inside" id="ninja_forms_sidebar_<?php echo $slug;?>" style="<?php echo $state;?>">
 				<?php
 				if(isset($sidebar['display_function']) AND !empty($sidebar['display_function'])){
 					$sidebar_callback = $sidebar['display_function'];
@@ -145,7 +155,7 @@ function ninja_forms_display_sidebars($data){
 									break;
 								case 'submit':
 									?>
-									<input type="submit" name="submit" id="" class="<?php echo $class;?>" value="<?php _e('View Submissions', 'ninja-forms');?>">
+									<input type="submit" name="submit" id="" class="<?php echo $class;?>" value="<?php _e( 'View Submissions', 'ninja-forms' );?>">
 									<?php
 									break;
 							}
