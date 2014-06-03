@@ -54,6 +54,7 @@ function ninja_forms_display_fields($form_id){
 
 				$process_field = $type['process_field'];
 				$data = $field['data'];
+				$data['form_id'] = $form_id;
 
 
 				//These filters can be used to temporarily modify the settings of a field, i.e. default_value.
